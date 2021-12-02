@@ -206,7 +206,6 @@ class SAS4Rec(torch.nn.Module):
         for sa_block in self.sa_blocks:
             x = sa_block(x, x, x)
             x[msk] = self.emb_layer(x_[msk])  # re-embed padded items
-            x = x + self.pos_emb(self.emb_ids)
         x = x[torch.arange(x.size(0)), lst - 1]  # extract last element tensor entry
         x = self.fc1(x)
         return self.softmax(x)
