@@ -130,7 +130,7 @@ class NextItNet(torch.nn.Module):
     def forward(self, x, lst):
         x_ = x
         with torch.no_grad():  # mask does not require gradient
-            msk = torch.where(x == PADDING_ITEM, PADDING_ITEM, 1)  # compute tensor representation of mask
+            msk = torch.where(x == PADDING_ITEM, 1, 0).bool()  # compute tensor representation of mask
         x = self.emb_layer(x)
         for dcnn in self.dilated_convolutions:  # dilated convolutional layers
             x = dcnn(x)  # dilated convolution updates previous value
@@ -138,6 +138,7 @@ class NextItNet(torch.nn.Module):
         x = x[torch.arange(x.size(0)), lst - 1]  # extract last element tensor entry
         x = self.fc1(x)  # fully-connected output layer
         return self.softmax(x)
+
 
 
 class GRU4Rec(torch.nn.Module):
@@ -200,11 +201,12 @@ class SAS4Rec(torch.nn.Module):
     def forward(self, x, lst):
         x_ = x
         with torch.no_grad():  # mask does not require gradient
-            msk = torch.where(x == PADDING_ITEM, PADDING_ITEM, 1)  # compute tensor representation of mask
+            msk = torch.where(x == PADDING_ITEM, 1, 0).bool()  # compute tensor representation of mask
         x = self._embed(x)  # embed items
         for sa_block in self.sa_blocks:
             x = sa_block(x, x, x)
-            x[msk] = self._embed(x_[msk])  # re-embed padded items
+            x[msk] = self.emb_layer(x_[msk])  # re-embed padded items
+            x = x + self.pos_emb(self.emb_ids)
         x = x[torch.arange(x.size(0)), lst - 1]  # extract last element tensor entry
         x = self.fc1(x)
         return self.softmax(x)
